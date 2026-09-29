@@ -1,63 +1,93 @@
 #Yash Lomate
 #09/21/2026
+# Lab 1: converting a color image to grayscale using two different methods
+
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
+# Name of the input image
 image = 'flowers.jpg'
 
-# Load the original color image
+# Read the original color image and the grayscale version using OpenCV
+# IMREAD_COLOR loads the image in BGR format
 color_image = cv2.imread(image, cv2.IMREAD_COLOR)
-if color_image is None:
+# IMREAD_GRAYSCALE loads a single-channel grayscale image directly
+builtin_image = cv2.imread(image, cv2.IMREAD_GRAYSCALE)
+
+# Check whether the image files were loaded correctly
+if color_image is None or builtin_image is None:
     raise FileNotFoundError(f'Could not load {image}')
 
-# Convert to grayscale for reference / comparison
-gray_image = cv2.cvtColor(color_image, cv2.COLOR_BGR2GRAY)
+# OpenCV grayscale conversion reference (used for comparison in the lab)
+cvt = cv2.cvtColor(color_image, cv2.COLOR_BGR2GRAY)
 
-def show_channel_histogram(title, img):
-    hist = cv2.calcHist([img], [0], None, [256], [0, 256])
-    plt.figure()
-    plt.title(title)
-    plt.xlabel('Intensity')
-    plt.ylabel('Count')
-    plt.plot(hist, color='black')
-    plt.xlim([0, 256])
-    plt.show()
-
-# Histogram equalization on grayscale image (baseline)
-gray_equalized = cv2.equalizeHist(gray_image)
-
-# Histogram equalization applied to each BGR color channel independently
+# Split the color image into its red, green, and blue channels
+# OpenCV uses BGR order, not RGB
 b, g, r = cv2.split(color_image)
-b_eq = cv2.equalizeHist(b)
-g_eq = cv2.equalizeHist(g)
-r_eq = cv2.equalizeHist(r)
-color_equalized = cv2.merge([b_eq, g_eq, r_eq])
 
-# Show the original and equalized output
+# Convert channel arrays to float for calculation accuracy
+b = b.astype(np.float64)
+g = g.astype(np.float64)
+r = r.astype(np.float64)
+
+# Helper function to clip values to 0-255 and convert back to uint8
+# This ensures valid image intensity values after calculation
+def to_unit8(arr):
+    arr = np.clip(arr, 0, 255)
+    return arr.astype(np.uint8)
+
+# Method 1: Average method
+# Each channel contributes equally to the final grayscale value
+average = to_unit8((b + g + r) / 3)
+
+# Method 2: NTSC method (standard luminance conversion)
+# This uses different weights because human eyes are more sensitive to green
+ntsc = to_unit8(0.299 * r + 0.587 * g + 0.114 * b)
+
+# This function was used earlier for comparison testing.
+# It is left in the file for reference, but not used in the final output.
+def compare(name, img, ref, ref_name):
+    diff = cv2.absdiff(img, ref)
+    print(f"  {name:8s} vs {ref_name:18s} "
+          f"max={diff.max():3d}  mean={diff.mean():6.3f}  "
+          f"within +/-1: {(diff <= 1).mean() * 100:5.1f}%")
+    return diff
+
+# Print image dimensions for reference
+print(f"Image: {color_image.shape[1]} x {color_image.shape[0]}\n")
+print("Showing the four required result images.")
+
+# Build the list of images to display
+# 1. Original color image
+# 2. Grayscale image from OpenCV
+# 3. Average method grayscale image
+# 4. NTSC method grayscale image
 panels = [
-    (cv2.cvtColor(color_image, cv2.COLOR_BGR2RGB), 'Original color image', None),
-    (gray_image, 'Original grayscale', 'gray'),
-    (gray_equalized, 'Equalized grayscale', 'gray'),
-    (cv2.cvtColor(color_equalized, cv2.COLOR_BGR2RGB), 'Equalized color image (per channel)', None),
+    (cv2.cvtColor(color_image, cv2.COLOR_BGR2RGB), "Original", None),
+    (builtin_image, "Grayscale", 'gray'),
+    (average, "Average method", 'gray'),
+    (ntsc, "NTSC method", 'gray'),
 ]
 
+# Display the four images in a 2x2 grid
 fig, axes = plt.subplots(2, 2, figsize=(12, 10))
 for ax, (img, title, cmap) in zip(axes.ravel(), panels):
-    ax.imshow(img, cmap=cmap, vmin=0 if cmap else None, vmax=255 if cmap else None)
+    ax.imshow(img, cmap=cmap, vmin=0 if cmap else None,
+              vmax=255 if cmap else None)
     ax.set_title(title)
     ax.axis('off')
 
 plt.tight_layout()
 plt.show()
 
-# Optional: display histograms for the channels before and after equalization
-show_channel_histogram('B channel histogram before equalization', b)
-show_channel_histogram('B channel histogram after equalization', b_eq)
-show_channel_histogram('G channel histogram before equalization', g)
-show_channel_histogram('G channel histogram after equalization', g_eq)
-show_channel_histogram('R channel histogram before equalization', r)
-show_channel_histogram('R channel histogram after equalization', r_eq)
+# Older code kept for reference only
+# cv2.imshow('Flowers', builtin_image)
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
 
-print('Histogram equalization applied to each RGB channel of flowers.jpg')
-print('Color image size:', color_image.shape[1], 'x', color_image.shape[0])
+# Average Method formula: (B + G + R) / 3
+# b,g,r = cv2.split(image)
+# average = b+g+r/3
+
+# average = b/3 + g/3 + r/3
