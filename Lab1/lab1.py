@@ -1,6 +1,6 @@
 #Yash Lomate
-#09/21/2026
-# Lab 1: converting a color image to grayscale using two different methods
+#09/28/2026
+#Lab 1: converting a color image to grayscale using two different methods
 
 import cv2
 import numpy as np
@@ -45,8 +45,8 @@ average = to_unit8((b + g + r) / 3)
 # This uses different weights because human eyes are more sensitive to green
 ntsc = to_unit8(0.299 * r + 0.587 * g + 0.114 * b)
 
-# This function was used earlier for comparison testing.
-# It is left in the file for reference, but not used in the final output.
+# Function for comparison testing
+# This function is used to compare the results of different methods.
 def compare(name, img, ref, ref_name):
     diff = cv2.absdiff(img, ref)
     print(f"  {name:8s} vs {ref_name:18s} "
@@ -58,7 +58,6 @@ def compare(name, img, ref, ref_name):
 print(f"Image: {color_image.shape[1]} x {color_image.shape[0]}\n")
 print("Showing the four required result images.")
 
-# Build the list of images to display
 # 1. Original color image
 # 2. Grayscale image from OpenCV
 # 3. Average method grayscale image
